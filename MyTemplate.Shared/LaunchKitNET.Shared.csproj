@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\MyTemplate.Domain\MyTemplate.Domain.csproj" />
+    <ProjectReference Include="..\MyTemplate.Domain\LaunchKitNET.Domain.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
