@@ -43,7 +43,7 @@ Ideal para:
 ## 📦 Como usar
 
 ```bash
-git clone https://github.com/seunome/MyTemplate.git
+git clone https://github.com/PedroPereiraAlves/LaunchKit.NET.git
 cd MyTemplate
 
 # Configure a connection string no appsettings.json
