@@ -1,19 +1,51 @@
 @MyTemplate.API_HostAddress = http://localhost:5167
+@token = {{login.response.body.$.data.token}}
+
+### Login admin
+# @name login
+POST {{MyTemplate.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@launchkit.local",
+  "password": "Admin@123"
+}
+
+###
+
+### Register user
+POST {{MyTemplate.API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "User@123",
+  "fullName": "Demo User"
+}
+
+###
+
+### Health
+GET {{MyTemplate.API_HostAddress}}/health
+
+###
+
+### Metrics (Admin)
+GET {{MyTemplate.API_HostAddress}}/api/metrics
+Authorization: Bearer {{token}}
+
+###
 
 ### List products
 GET {{MyTemplate.API_HostAddress}}/api/products
+Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
 
-### Get product by id
-GET {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
-Accept: application/json
-
-###
-
-### Create product
+### Create product (Admin)
 POST {{MyTemplate.API_HostAddress}}/api/products
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -24,18 +56,6 @@ Content-Type: application/json
 
 ###
 
-### Update product
-PUT {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
-Content-Type: application/json
-
-{
-  "name": "Notebook Pro",
-  "quantity": 5,
-  "price": 4299.00
-}
-
-###
-
-### Delete product
-DELETE {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
-Accept: application/json
+### Audit logs (Admin)
+GET {{MyTemplate.API_HostAddress}}/api/audit?take=20
+Authorization: Bearer {{token}}

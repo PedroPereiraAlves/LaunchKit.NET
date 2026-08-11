@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LaunchKit.NET Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef4;
+      --muted: #8b9aab;
+      --accent: #2f6fed;
+      --ok: #2f9e44;
+      --bad: #c92a2a;
+      --border: #2a3542;
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: radial-gradient(1200px 600px at 10% -10%, #1b2a40, transparent), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; letter-spacing: 0.02em; }
+    header a { color: var(--muted); text-decoration: none; }
+    header a:hover { color: var(--text); }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+    .card .label { color: var(--muted); font-size: 0.85rem; }
+    .card .value { font-size: 1.75rem; font-weight: 650; margin-top: 0.35rem; }
+    .status-ok { color: var(--ok); }
+    .status-bad { color: var(--bad); }
+    .panel {
+      margin-top: 1.25rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem;
+    }
+    label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.35rem; }
+    input {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #121820;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); margin-left: 0.5rem; }
+    .row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .msg { margin-top: 0.75rem; color: var(--muted); font-size: 0.9rem; }
+    pre {
+      background: #121820;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem;
+      overflow: auto;
+      font-size: 0.85rem;
+      color: #c9d6e4;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LaunchKit.NET Dashboard</h1>
+    <a href="/swagger" target="_blank">Swagger</a>
+  </header>
+  <main>
+    <section class="grid">
+      <div class="card">
+        <div class="label">Health</div>
+        <div class="value" id="healthStatus">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Products</div>
+        <div class="value" id="productsCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Users</div>
+        <div class="value" id="usersCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Audit logs</div>
+        <div class="value" id="auditCount">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Uptime (s)</div>
+        <div class="value" id="uptime">—</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0;font-size:1rem;">Autenticação admin</h2>
+      <div class="row">
+        <div style="flex:1;min-width:200px;">
+          <label for="email">Email</label>
+          <input id="email" value="admin@launchkit.local" />
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <label for="password">Senha</label>
+          <input id="password" type="password" value="Admin@123" />
+        </div>
+      </div>
+      <div class="row">
+        <button id="loginBtn" type="button">Login e carregar métricas</button>
+        <button id="refreshBtn" class="secondary" type="button">Atualizar</button>
+      </div>
+      <div class="msg" id="message">Faça login com o admin seed para carregar /api/metrics.</div>
+      <label for="token" style="margin-top:1rem;">Bearer token</label>
+      <input id="token" placeholder="Cole o JWT ou use o botão de login" />
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0;font-size:1rem;">Resposta bruta</h2>
+      <pre id="raw">{}</pre>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function loadHealth() {
+      try {
+        const res = await fetch("/health");
+        const text = await res.text();
+        const ok = res.ok;
+        const el = $("healthStatus");
+        el.textContent = ok ? "Healthy" : text || "Unhealthy";
+        el.className = "value " + (ok ? "status-ok" : "status-bad");
+      } catch {
+        const el = $("healthStatus");
+        el.textContent = "Offline";
+        el.className = "value status-bad";
+      }
+    }
+
+    async function loadMetrics() {
+      const token = $("token").value.trim();
+      if (!token) {
+        $("message").textContent = "Informe um token JWT ou faça login.";
+        return;
+      }
+
+      const res = await fetch("/api/metrics", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      const json = await res.json();
+      $("raw").textContent = JSON.stringify(json, null, 2);
+
+      if (!res.ok) {
+        $("message").textContent = json.message || "Falha ao carregar métricas.";
+        return;
+      }
+
+      const data = json.data || {};
+      $("productsCount").textContent = data.productsCount ?? "—";
+      $("usersCount").textContent = data.usersCount ?? "—";
+      $("auditCount").textContent = data.auditLogsCount ?? "—";
+      $("uptime").textContent = data.uptimeSeconds ?? "—";
+      $("message").textContent = "Métricas atualizadas em " + new Date().toLocaleTimeString();
+    }
+
+    async function login() {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: $("email").value,
+          password: $("password").value
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        $("message").textContent = json.message || "Falha no login.";
+        return;
+      }
+      const token = json.data?.token;
+      $("token").value = token || "";
+      localStorage.setItem("launchkit_token", token || "");
+      $("message").textContent = "Login OK (" + (json.data?.role || "") + ").";
+      await loadMetrics();
+    }
+
+    $("loginBtn").addEventListener("click", login);
+    $("refreshBtn").addEventListener("click", async () => {
+      await loadHealth();
+      await loadMetrics();
+    });
+
+    const saved = localStorage.getItem("launchkit_token");
+    if (saved) $("token").value = saved;
+
+    loadHealth();
+    if (saved) loadMetrics();
+  </script>
+</body>
+</html>

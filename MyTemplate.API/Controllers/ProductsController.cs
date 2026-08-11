@@ -1,13 +1,16 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyTemplate.API.Responses;
 using MyTemplate.Application.DTOs;
 using MyTemplate.Application.Features.Products.Commands;
 using MyTemplate.Application.Features.Products.Queries;
+using MyTemplate.Shared.Auth;
 
 namespace MyTemplate.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
@@ -39,6 +42,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateProductCommand command, CancellationToken cancellationToken)
     {
@@ -48,6 +52,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductCommand command, CancellationToken cancellationToken)
@@ -61,6 +66,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)

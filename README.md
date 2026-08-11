@@ -1,11 +1,11 @@
-# 🧱 LaunchKit.NET - CRUD Genérico com CQRS + Repository + UoW
+# LaunchKit.NET - CRUD Genérico com CQRS + Repository + UoW
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-blueviolet)
 ![Open Source](https://img.shields.io/badge/license-MIT-brightgreen)
 ![Production Ready](https://img.shields.io/badge/ready%20for-produção-orange)
 ![Serilog Logging](https://img.shields.io/badge/logging-Serilog-informational)
 
-> **🚀 Um template prático, escalável e com boas práticas para criação de CRUDs em ASP.NET Core 8.**
+> Template prático e escalável para CRUDs em ASP.NET Core 8, com autenticação JWT, auditoria, CLI de scaffold, health checks e dashboard.
 
 Ideal para:
 - Projetos MVP / Freelancers
@@ -14,41 +14,44 @@ Ideal para:
 
 ---
 
-## ✅ Features
+## Features
 
-- ✅ **.NET 8 + ASP.NET Core**
-- ✅ **CQRS com MediatR** (Commands & Queries separados)
-- ✅ **Repository Pattern + Unit of Work**
-- ✅ **EF Core + SQLite em arquivo** (persistente; criado automaticamente na primeira execução)
-- ✅ **Logging com Serilog**
-- ✅ **AutoMapper + DTOs**
-- ✅ **Tratamento global de erros (Middleware)**
-- ✅ **Respostas padronizadas (Sucesso/Erro)**
-- ✅ **Swagger configurado**
-- ✅ **CRUD completo de exemplo (Products)**
-- ✅ **Pronto para escalar com DDD / Clean Architecture**
+- .NET 8 + ASP.NET Core
+- CQRS com MediatR (Commands & Queries)
+- Repository Pattern + Unit of Work
+- EF Core + SQLite em arquivo (persistente; criado na primeira execução)
+- Autenticação e autorização JWT (roles Admin / User)
+- Auditoria e histórico de entidades
+- CLI para geração automática de CRUD
+- Health checks + dashboard de métricas
+- Logging com Serilog
+- AutoMapper + DTOs
+- Tratamento global de erros
+- Respostas padronizadas
+- Swagger com suporte a Bearer token
 
 ---
 
-## 🧱 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
-├── MyTemplate.Domain         # Entidades e interfaces (sem dependência externa)
+├── MyTemplate.Domain         # Entidades e interfaces
 ├── MyTemplate.Application    # CQRS, Handlers, DTOs, AutoMapper
-├── MyTemplate.Infrastructure # EF Core, Repositórios, UoW, DbContext
-├── MyTemplate.API            # API REST com Controllers e Middlewares
-├── MyTemplate.Shared         # Tipos compartilhados (Result<T>, helpers)
+├── MyTemplate.Infrastructure # EF Core, Repositórios, UoW, JWT, Auditoria
+├── MyTemplate.API            # API REST, Dashboard, Middlewares
+├── MyTemplate.Shared         # Roles, Result<T>
+├── MyTemplate.Cli            # Gerador de CRUD
 ```
 
 ---
 
-## 📋 Pré-requisitos
+## Pré-requisitos
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 ---
 
-## 📦 Como usar
+## Como usar
 
 ```bash
 git clone https://github.com/PedroPereiraAlves/LaunchKit.NET.git
@@ -58,24 +61,33 @@ dotnet restore
 dotnet run --project MyTemplate.API
 ```
 
-Em seguida, abra o Swagger:
+Em seguida:
 
-- HTTPS: [https://localhost:7139/swagger](https://localhost:7139/swagger)
-- HTTP: [http://localhost:5167/swagger](http://localhost:5167/swagger)
+- Swagger: [https://localhost:7139/swagger](https://localhost:7139/swagger) ou [http://localhost:5167/swagger](http://localhost:5167/swagger)
+- Dashboard: [http://localhost:5167/dashboard](http://localhost:5167/dashboard)
+- Health: [http://localhost:5167/health](http://localhost:5167/health)
 
-Não é necessária configuração adicional de banco para iniciar o projeto.
+### Credenciais padrão (seed)
+
+| Campo | Valor |
+|-------|-------|
+| Email | `admin@launchkit.local` |
+| Senha | `Admin@123` |
+| Role  | `Admin` |
+
+Altere a senha e a chave JWT antes de qualquer uso em produção.
 
 ### Banco de dados
 
-O template utiliza **SQLite em arquivo** (não em memória). Na primeira execução, o EF Core cria automaticamente o arquivo `launchkit.db` na pasta de execução da API.
+O template utiliza **SQLite em arquivo** (não em memória). Na primeira execução, o EF Core cria o arquivo `launchkit.db` na pasta de execução da API.
 
 | Comportamento | Detalhe |
 |---------------|---------|
-| Persistência | Os dados permanecem entre reinícios da aplicação |
-| Local do arquivo | Diretório de execução do projeto `MyTemplate.API` |
-| Reset local | Remova o arquivo `launchkit.db` para recomeçar com um banco vazio |
+| Persistência | Dados permanecem entre reinícios |
+| Local do arquivo | Diretório de execução de `MyTemplate.API` |
+| Reset local | Remova `launchkit.db` para recriar o schema (necessário após mudanças de modelo com `EnsureCreated`) |
 
-Connection string padrão em `MyTemplate.API/appsettings.json`:
+Connection string em `MyTemplate.API/appsettings.json`:
 
 ```json
 "ConnectionStrings": {
@@ -83,11 +95,47 @@ Connection string padrão em `MyTemplate.API/appsettings.json`:
 }
 ```
 
-Para migrar para SQL Server, PostgreSQL ou outro provedor, altere o provider em `InfrastructureServices` e atualize a connection string correspondente.
+### JWT
+
+```json
+"Jwt": {
+  "Issuer": "LaunchKit.NET",
+  "Audience": "LaunchKit.NET",
+  "Key": "LaunchKit.NET-Dev-Secret-Key-Change-In-Production-32+",
+  "ExpirationMinutes": 60
+}
+```
 
 ---
 
-## 🔌 Endpoints de exemplo (Products)
+## Autenticação
+
+| Método | Rota | Acesso |
+|--------|------|--------|
+| `POST` | `/api/auth/register` | Público (cria role `User`) |
+| `POST` | `/api/auth/login` | Público |
+
+Exemplo de login:
+
+```json
+{
+  "email": "admin@launchkit.local",
+  "password": "Admin@123"
+}
+```
+
+Use o token retornado no header: `Authorization: Bearer {token}`.
+
+### Autorização em Products
+
+| Ação | Permissão |
+|------|-----------|
+| GET | Qualquer usuário autenticado |
+| POST / PUT / DELETE | Role `Admin` |
+
+---
+
+## Endpoints Products
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -96,8 +144,6 @@ Para migrar para SQL Server, PostgreSQL ou outro provedor, altere o provider em 
 | `POST` | `/api/products` | Cria |
 | `PUT` | `/api/products/{id}` | Atualiza |
 | `DELETE` | `/api/products/{id}` | Remove |
-
-Exemplo de body (`POST` / `PUT`):
 
 ```json
 {
@@ -109,58 +155,77 @@ Exemplo de body (`POST` / `PUT`):
 
 ---
 
-## 👀 Como criar um novo CRUD
+## Auditoria
 
-1. Crie a entidade em `MyTemplate.Domain/Entities`
-2. Adicione o `DbSet<>` (e opcionalmente um `IEntityTypeConfiguration<>`) na Infrastructure
-3. Crie Commands/Queries + Handlers em `MyTemplate.Application/Features`
-4. Crie o Profile do AutoMapper
-5. Exponha o Controller na API
+Toda alteração em entidades derivadas de `BaseEntity` gera registro em `AuditLogs` (Created / Updated / Deleted), com usuário, timestamp e snapshot JSON (senha mascarada).
 
-Command de exemplo:
-
-```csharp
-public class CreateProductCommand : IRequest<ProductDto>
-{
-    public string Name { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-}
-```
+| Método | Rota | Acesso |
+|--------|------|--------|
+| `GET` | `/api/audit?take=100` | Admin |
+| `GET` | `/api/audit/{entityName}/{entityId}` | Admin |
 
 ---
 
-## 📸 Screenshots
+## Health checks e dashboard
+
+| Recurso | Rota | Acesso |
+|---------|------|--------|
+| Health | `/health` | Público |
+| Métricas | `/api/metrics` | Admin |
+| Dashboard | `/dashboard` | UI (métricas exigem login admin) |
+
+O dashboard exibe status de saúde, contagens (products, users, audit logs) e uptime.
+
+---
+
+## CLI de geração de CRUD
+
+```bash
+dotnet run --project MyTemplate.Cli -- generate Order CustomerName:string Total:decimal
+```
+
+Gera entidade, configuration EF, DTO, commands/queries/handlers, AutoMapper profile e controller com `[Authorize]`. Também tenta adicionar o `DbSet<>` em `AppDbContext`.
+
+Tipos suportados: `string`, `int`, `long`, `decimal`, `bool`, `Guid`, `DateTime`, `double`, `float`.
+
+Arquivos existentes não são sobrescritos. Após gerar, remova `launchkit.db` (ou use migrations) para aplicar o novo schema.
+
+---
+
+## Como criar um novo CRUD (manual)
+
+1. Entidade em `MyTemplate.Domain/Entities`
+2. `DbSet<>` + `IEntityTypeConfiguration<>` na Infrastructure
+3. Commands/Queries + Handlers em `MyTemplate.Application/Features`
+4. Profile AutoMapper
+5. Controller na API
+
+Ou use a CLI acima.
+
+---
+
+## Screenshots
 
 <img src="screenshots/swagger-ui.png" width="700px" />
 
 ---
 
-## 💼 LaunchKit.NET PRO (Em breve!)
+## Roadmap (futuro)
 
-Quer mais?
-
-> A versão PRO inclui:
->
-> - 🔐 Autenticação + Autorização JWT
-> - 🧾 Auditoria + Histórico de Entidades
-> - 🧰 CLI para geração de CRUD automático
-> - 📊 Dashboard com métricas e health checks
-> - 🔄 Integração com RabbitMQ (eventos)
-> - 💾 Suporte a múltiplos bancos: PostgreSQL, MySQL
+- Integração com RabbitMQ (eventos)
+- Suporte nativo a PostgreSQL / MySQL
+- CLI empacotada como `dotnet tool`
 
 ---
 
-## 🧑‍💻 Contribua
+## Contribua
 
-Quer sugerir melhorias ou usar esse projeto como base para o seu? Fique à vontade!
-
-- ⭐ Star este repositório
-- 📬 Fork e personalize para seu projeto
-- 💡 Abra uma issue para feedbacks
+- Star este repositório
+- Fork e personalize para o seu projeto
+- Abra uma issue para feedbacks
 
 ---
 
-## 📄 Licença
+## Licença
 
-MIT — sinta-se livre para usar, modificar e compartilhar. Veja o arquivo [LICENSE](LICENSE).
+MIT — veja o arquivo [LICENSE](LICENSE).

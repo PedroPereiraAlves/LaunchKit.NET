@@ -12,8 +12,9 @@ public static class ApiConfiguration
             {
                 Title = "LaunchKit.NET API",
                 Version = "v1",
-                Description = "Template CRUD com CQRS + Repository + Unit of Work"
+                Description = "Template CRUD com CQRS, JWT, auditoria e health checks"
             });
+            options.AddSwaggerJwt();
         });
 
         services.AddCors(options =>
@@ -36,9 +37,13 @@ public static class ApiConfiguration
         }
 
         app.UseHttpsRedirection();
+        app.UseStaticFiles();
         app.UseCors("AllowAll");
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        app.MapGet("/dashboard", () => Results.Redirect("/dashboard/index.html"));
 
         return app;
     }
