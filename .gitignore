@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# SQLite local database
+*.db
+*.db-shm
+*.db-wal
+
+# Serilog rolling logs
+Logs/

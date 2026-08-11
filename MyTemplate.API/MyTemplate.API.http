@@ -1,6 +1,41 @@
 @MyTemplate.API_HostAddress = http://localhost:5167
 
-GET {{MyTemplate.API_HostAddress}}/weatherforecast/
+### List products
+GET {{MyTemplate.API_HostAddress}}/api/products
 Accept: application/json
 
 ###
+
+### Get product by id
+GET {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+### Create product
+POST {{MyTemplate.API_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Notebook",
+  "quantity": 10,
+  "price": 3499.90
+}
+
+###
+
+### Update product
+PUT {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "name": "Notebook Pro",
+  "quantity": 5,
+  "price": 4299.00
+}
+
+###
+
+### Delete product
+DELETE {{MyTemplate.API_HostAddress}}/api/products/00000000-0000-0000-0000-000000000000
+Accept: application/json

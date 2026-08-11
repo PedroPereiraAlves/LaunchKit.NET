@@ -3,7 +3,7 @@ using MyTemplate.Domain.Interfaces;
 using MyTemplate.Infrastructure.Context;
 using MyTemplate.Infrastructure.Repositories;
 
-namespace MyTemplate.Infrastructure.UnitOfWorkName;
+namespace MyTemplate.Infrastructure.UnitOfWork;
 
 public class UnitOfWork : IUnitOfWork
 {
@@ -22,12 +22,13 @@ public class UnitOfWork : IUnitOfWork
         {
             _repositories[type] = new Repository<T>(_context);
         }
+
         return (IRepository<T>)_repositories[type];
     }
 
     public async Task<int> CommitAsync()
         => await _context.SaveChangesAsync();
 
-    public void Dispose() 
+    public void Dispose()
         => _context.Dispose();
 }

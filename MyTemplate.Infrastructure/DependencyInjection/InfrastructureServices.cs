@@ -3,8 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MyTemplate.Domain.Interfaces;
 using MyTemplate.Infrastructure.Context;
-using MyTemplate.Infrastructure.UnitOfWorkName;
-
 namespace MyTemplate.Infrastructure.DependencyInjection;
 
 public static class InfrastructureServices
@@ -14,7 +12,7 @@ public static class InfrastructureServices
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, MyTemplate.Infrastructure.UnitOfWork.UnitOfWork>();
 
         return services;
     }

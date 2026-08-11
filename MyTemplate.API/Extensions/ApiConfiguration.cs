@@ -5,25 +5,35 @@ public static class ApiConfiguration
     public static IServiceCollection AddApiConfiguration(this IServiceCollection services)
     {
         services.AddControllers();
-
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new()
+            {
+                Title = "LaunchKit.NET API",
+                Version = "v1",
+                Description = "Template CRUD com CQRS + Repository + Unit of Work"
+            });
+        });
 
         services.AddCors(options =>
         {
-            options.AddPolicy("AllowAll", builder =>
-                builder.AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader());
+            options.AddPolicy("AllowAll", policy =>
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader());
         });
 
         return services;
     }
 
-    public static WebApplication UseApiConfiguration(this WebApplication app)
+    public static WebApplication UseApiConfiguration(this WebApplication app, IWebHostEnvironment environment)
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        if (environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
 
         app.UseHttpsRedirection();
         app.UseCors("AllowAll");
