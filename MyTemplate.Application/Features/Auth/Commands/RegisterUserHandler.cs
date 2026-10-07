@@ -1,6 +1,7 @@
 using MediatR;
 using MyTemplate.Application.Abstractions;
 using MyTemplate.Application.DTOs;
+using MyTemplate.Application.Exceptions;
 using MyTemplate.Domain.Entities;
 using MyTemplate.Domain.Interfaces;
 using MyTemplate.Shared.Auth;
@@ -26,14 +27,11 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, AuthResp
     public async Task<AuthResponseDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
         var email = request.Email.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(request.Password))
-            throw new InvalidOperationException("Email e senha são obrigatórios.");
-
         var existing = await _unitOfWork.Repository<User>()
             .FindAsync(u => u.Email == email);
 
         if (existing.Any())
-            throw new InvalidOperationException("Já existe um usuário com este email.");
+            throw new ConflictException("Já existe um usuário com este email.");
 
         var user = new User
         {
