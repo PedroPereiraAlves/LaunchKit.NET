@@ -6,7 +6,9 @@ namespace MyTemplate.Infrastructure.Services;
 
 public class MetricsService : IMetricsService
 {
-    private static readonly DateTime StartedAtUtc = DateTime.UtcNow;
+    private static readonly DateTime StartedAtUtc =
+        System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
+
     private readonly AppDbContext _context;
 
     public MetricsService(AppDbContext context)

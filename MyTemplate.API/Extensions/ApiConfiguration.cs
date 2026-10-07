@@ -58,29 +58,9 @@ public static class ApiConfiguration
         {
             options.AddPolicy(CorsPolicyName, policy =>
             {
-                var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
-                    .Where(origin => !string.IsNullOrWhiteSpace(origin))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray() ?? [];
-
-                if (origins.Length > 0)
-                {
-                    policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
-                    return;
-                }
-
-                if (environment.IsDevelopment())
-                {
-                    policy.SetIsOriginAllowed(origin =>
-                            Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-                            && (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
-                                || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)))
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                    return;
-                }
-
-                policy.SetIsOriginAllowed(_ => false);
+                policy.SetIsOriginAllowed(origin => CorsOriginRules.IsAllowed(origin, configuration, environment))
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
             });
         });
 

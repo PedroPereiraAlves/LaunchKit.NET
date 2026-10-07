@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using MyTemplate.API.Extensions;
 using MyTemplate.API.Responses;
 using MyTemplate.Application.Exceptions;
 
@@ -8,11 +9,16 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
     private readonly IHostEnvironment _environment;
+    private readonly IConfiguration _configuration;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment environment)
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
+        IHostEnvironment environment,
+        IConfiguration configuration)
     {
         _logger = logger;
         _environment = environment;
+        _configuration = configuration;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -36,6 +42,8 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 
         httpContext.Response.StatusCode = status;
         httpContext.Response.ContentType = "application/json";
+        SecurityHeadersExtensions.Apply(httpContext);
+        CorsOriginRules.Apply(httpContext, _configuration, _environment);
 
         var response = new ApiResponse<object>(false, message)
         {
