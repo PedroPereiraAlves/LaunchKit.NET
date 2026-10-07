@@ -26,9 +26,11 @@ Ideal para:
 - Health checks + dashboard de métricas
 - Logging com Serilog
 - AutoMapper + DTOs
-- Tratamento global de erros
+- Validação de entrada com FluentValidation (pipeline do MediatR)
+- Tratamento global de erros no formato da API, com `traceId`
 - Respostas padronizadas
 - Swagger com suporte a Bearer token
+- Limite de taxa em `/api/auth`, CORS explícito e cabeçalhos de segurança
 
 ---
 
@@ -97,6 +99,8 @@ Connection string em `MyTemplate.API/appsettings.json`:
 
 ### JWT
 
+Issuer, audience e expiração ficam em `appsettings.json`. A chave de desenvolvimento fica somente em `appsettings.Development.json`:
+
 ```json
 "Jwt": {
   "Issuer": "LaunchKit.NET",
@@ -104,6 +108,12 @@ Connection string em `MyTemplate.API/appsettings.json`:
   "Key": "LaunchKit.NET-Dev-Secret-Key-Change-In-Production-32+",
   "ExpirationMinutes": 60
 }
+```
+
+Fora de Development a API não inicia se `Jwt:Key` estiver ausente, tiver menos de 32 bytes ou for a chave de exemplo. Em produção defina a chave por variável de ambiente (ou User Secrets em Development):
+
+```bash
+export Jwt__Key="troque-por-uma-chave-com-32-bytes-ou-mais"
 ```
 
 ---
@@ -125,6 +135,41 @@ Exemplo de login:
 ```
 
 Use o token retornado no header: `Authorization: Bearer {token}`.
+
+Pedidos sem token, com token inválido ou sem a role exigida respondem no mesmo envelope (`401` / `403`), com `message` e `traceId`.
+
+`POST /api/auth/login` e `POST /api/auth/register` aceitam no máximo 20 requisições por minuto por IP (`AuthRateLimit` em `appsettings.json`). O excesso retorna `429`.
+
+### Validação
+
+Commands passam por FluentValidation antes do handler. Falhas de validação e de model binding usam o envelope da API:
+
+```json
+{
+  "success": false,
+  "message": "Dados inválidos.",
+  "errors": {
+    "name": ["O nome é obrigatório."]
+  },
+  "traceId": "0HN..."
+}
+```
+
+Regras do exemplo Product: nome obrigatório (máximo 200), quantidade e preço maiores ou iguais a zero, preço com no máximo 2 casas decimais. Registro exige email válido e senha com pelo menos 8 caracteres, uma letra e um número. Email já cadastrado retorna `409`.
+
+### CORS
+
+Não há política `AllowAnyOrigin`. Informe origens explícitas quando houver um front em outro host:
+
+```json
+"Cors": {
+  "AllowedOrigins": [ "https://app.seudominio.com" ]
+}
+```
+
+Com a lista vazia, Development aceita apenas `localhost` e `127.0.0.1`. Nos demais ambientes nenhuma origem cruzada é liberada. O dashboard é servido pela própria API e não depende de CORS.
+
+Fora de Development a API envia HSTS. Em todos os ambientes ela desliga o cabeçalho `Server` e envia `nosniff`, `Referrer-Policy`, `X-Frame-Options` e CSP (`script-src 'self'`). O Swagger, só em Development, fica de fora da CSP porque a UI oficial usa script inline.
 
 ### Autorização em Products
 
@@ -161,7 +206,7 @@ Toda alteração em entidades derivadas de `BaseEntity` gera registro em `AuditL
 
 | Método | Rota | Acesso |
 |--------|------|--------|
-| `GET` | `/api/audit?take=100` | Admin |
+| `GET` | `/api/audit?take=100` | Admin (`take` vazio ou menor que 1 usa 100; o máximo é 200) |
 | `GET` | `/api/audit/{entityName}/{entityId}` | Admin |
 
 ---
@@ -170,11 +215,11 @@ Toda alteração em entidades derivadas de `BaseEntity` gera registro em `AuditL
 
 | Recurso | Rota | Acesso |
 |---------|------|--------|
-| Health | `/health` | Público |
+| Health | `/health` | Público (JSON: `status`, `checks`, duração; sem detalhes de exceção) |
 | Métricas | `/api/metrics` | Admin |
 | Dashboard | `/dashboard` | UI (métricas exigem login admin) |
 
-O dashboard exibe status de saúde, contagens (products, users, audit logs) e uptime.
+O dashboard exibe status de saúde, contagens (products, users, audit logs) e tempo no ar. O login admin preenche o token no navegador local; o botão Sair apaga esse token.
 
 ---
 
@@ -184,7 +229,7 @@ O dashboard exibe status de saúde, contagens (products, users, audit logs) e up
 dotnet run --project MyTemplate.Cli -- generate Order CustomerName:string Total:decimal
 ```
 
-Gera entidade, configuration EF, DTO, commands/queries/handlers, AutoMapper profile e controller com `[Authorize]`. Também tenta adicionar o `DbSet<>` em `AppDbContext`.
+Gera entidade, configuration EF, DTO, commands/queries/handlers, validadores FluentValidation para propriedades `string`, AutoMapper profile e controller com `[Authorize]`. Também tenta adicionar o `DbSet<>` em `AppDbContext`.
 
 Tipos suportados: `string`, `int`, `long`, `decimal`, `bool`, `Guid`, `DateTime`, `double`, `float`.
 

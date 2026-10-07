@@ -15,7 +15,7 @@ public class GetAuditLogsHandler : IRequestHandler<GetAuditLogsQuery, IEnumerabl
 
     public async Task<IEnumerable<AuditLogDto>> Handle(GetAuditLogsQuery request, CancellationToken cancellationToken)
     {
-        var take = request.Take <= 0 ? 100 : request.Take;
+        var take = request.Take <= 0 ? 100 : Math.Min(request.Take, 200);
         var logs = await _auditLogRepository.GetRecentAsync(take);
         return logs.Select(x => new AuditLogDto
         {

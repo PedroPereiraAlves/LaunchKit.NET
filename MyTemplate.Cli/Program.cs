@@ -111,6 +111,7 @@ static void PrintHelp()
           dotnet run --project MyTemplate.Cli -- generate Order CustomerName:string Total:decimal
 
         Tipos suportados: string, int, long, decimal, bool, Guid, DateTime, double, float
+        Propriedades string ganham validador FluentValidation (obrigatório, máx. 200).
         """);
 }
 
@@ -139,6 +140,7 @@ internal sealed class CrudGenerator
             WriteConfiguration();
             WriteDto();
             WriteCommandsQueries();
+            WriteValidators();
             WriteHandlers();
             WriteProfile();
             WriteController();
@@ -286,6 +288,55 @@ internal sealed class CrudGenerator
 
             public record Get{{_entity}}ByIdQuery(Guid Id) : IRequest<{{_entity}}Dto?>;
             """);
+    }
+
+    private void WriteValidators()
+    {
+        var featureRoot = Path.Combine(_root, "MyTemplate.Application", "Features", _plural, "Commands");
+        var propertyRules = BuildStringRules();
+
+        WriteFile(Path.Combine(featureRoot, $"Create{_entity}CommandValidator.cs"), $$"""
+            using FluentValidation;
+
+            namespace MyTemplate.Application.Features.{{_plural}}.Commands;
+
+            public class Create{{_entity}}CommandValidator : AbstractValidator<Create{{_entity}}Command>
+            {
+                public Create{{_entity}}CommandValidator()
+                {
+            {{propertyRules}}
+                }
+            }
+            """);
+
+        WriteFile(Path.Combine(featureRoot, $"Update{_entity}CommandValidator.cs"), $$"""
+            using FluentValidation;
+
+            namespace MyTemplate.Application.Features.{{_plural}}.Commands;
+
+            public class Update{{_entity}}CommandValidator : AbstractValidator<Update{{_entity}}Command>
+            {
+                public Update{{_entity}}CommandValidator()
+                {
+                    RuleFor(x => x.Id).NotEmpty().WithMessage("O id é obrigatório.");
+            {{propertyRules}}
+                }
+            }
+            """);
+    }
+
+    private string BuildStringRules()
+    {
+        var lines = _properties
+            .Where(property => property.Type == "string")
+            .Select(property =>
+                $"        RuleFor(x => x.{property.Name}).NotEmpty().WithMessage(\"O campo {property.Name} é obrigatório.\").MaximumLength(200).WithMessage(\"O campo {property.Name} deve ter no máximo 200 caracteres.\");")
+            .ToList();
+
+        if (lines.Count == 0)
+            lines.Add("        // Adicione regras de domínio (intervalos numéricos, formatos) antes de publicar.");
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private void WriteHandlers()
